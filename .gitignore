@@ -1,0 +1,27 @@
+# .gitignore 파일 내용
+# Compiled executables and object files
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+*.obj
+
+# Build output directories
+/bin/
+/pkg/
+/dist/
+
+# Dependencies
+/vendor/
+
+# Test output, Go modules cache
+*.test
+*.out
+go.sum
+
+# IDE/Editor files (optional but recommended)
+.idea/
+.vscode/
+*~
