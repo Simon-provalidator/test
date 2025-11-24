@@ -15,6 +15,8 @@ import (
 // WebSocket 엔드포인트 경로 (필요시 /websocket으로 변경 가능)
 const wsPath = "/websocket"
 
+//const wsPath = "/subscribe"
+
 // RPC 엔드포인트
 // const rpcEndpoint = "wss://rpc-atomone.nodeist.net"
 const rpcEndpoint = "wss://cosmoshub-rpc.0base.dev"
@@ -61,6 +63,7 @@ func main() {
 	}
 	defer func() {
 		log.Println("WebSocket 연결 종료 중...")
+		// context 취소 후에 conn.Close()를 호출하여 읽기/쓰기 고루틴이 종료되도록 합니다.
 		conn.Close()
 	}()
 
@@ -89,10 +92,12 @@ func main() {
 	log.Printf("이벤트 구독 시작: %s", subscribeQuery)
 	log.Println("이벤트를 기다리는 중... (Ctrl+C로 종료)")
 
-	// Context 취소 시 연결을 닫는 고루틴
+	// Context 취소 시 연결을 닫아 ReadMessage를 unblock 하는 고루틴
 	go func() {
 		<-ctx.Done()
-		conn.Close()
+		// conn.Close()는 defer에서 호출되지만,
+		// ReadMessage를 즉시 중단시키기 위해 CloseMessage를 보낼 수 있습니다.
+		// conn.Close()만으로도 충분히 ReadMessage가 에러를 반환하고 종료되므로, 여기서는 context의 종료를 대기합니다.
 	}()
 
 	// 메시지 수신 루프
@@ -104,18 +109,26 @@ func main() {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
 				// Context 취소로 인한 종료인지 확인
+				if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+					done <- nil // 정상 종료
+					return
+				}
+
 				select {
 				case <-ctx.Done():
-					done <- ctx.Err()
+					// conn.Close()가 호출되어 여기서 에러가 발생한 경우
+					done <- nil
 					return
 				default:
 				}
+
 				// 예상치 못한 종료 에러
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					done <- err
 					return
 				}
-				// 다른 에러는 종료
+
+				// 기타 읽기 에러
 				done <- err
 				return
 			}
@@ -132,7 +145,7 @@ func main() {
 			log.Printf("오류 발생: %v", err)
 		}
 	case <-ctx.Done():
-		log.Println("프로그램 종료 중...")
+		log.Println("프로그램 종료 신호 수신...")
 	}
 
 	log.Println("프로그램이 종료되었습니다.")
