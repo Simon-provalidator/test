@@ -10,7 +10,7 @@ import (
 )
 
 // wsPath, rpcEndpoint, JSONRPCRequest 구조체는 main.go에 이미 정의되어 있으므로 여기서는 재정의하지 않고 사용합니다.
-
+/*
 // JSON-RPC 이벤트 알림 구조체 (수신된 Tx 이벤트 파싱용)
 type JSONRPCNotification struct {
 	JSONRPC string `json:"jsonrpc"`
@@ -29,7 +29,7 @@ type JSONRPCNotification struct {
 		} `json:"data"`
 	} `json:"params"`
 }
-
+*/
 // Tendermint Event 구조체 정의 (로그 파싱용)
 type Attribute struct {
 	Key   string `json:"key"`
